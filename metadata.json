@@ -1,0 +1,5 @@
+{
+  "name": "Calculadora terapeuta",
+  "description": "Ferramenta visual para terapeutas calcularem prejuízo financeiro por agenda vazia, otimizada para vídeos e mobile.",
+  "requestFramePermissions": []
+}
