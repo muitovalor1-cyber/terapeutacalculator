@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RangeSlider } from './components/RangeSlider';
+import { InputRange } from './components/InputRange';
 import { NumberTicker } from './components/NumberTicker';
 import { WeeklyCalendar } from './components/WeeklyCalendar';
 import { AlertTriangle } from 'lucide-react';
@@ -7,7 +7,6 @@ import { AlertTriangle } from 'lucide-react';
 const App: React.FC = () => {
   // State for inputs
   const [sessionPrice, setSessionPrice] = useState<number>(250);
-  // Removed sessionDuration state, fixed to 60 minutes as requested
   const sessionDuration = 60; 
   const [weeklyCapacity, setWeeklyCapacity] = useState<number>(20);
   const [currentPatients, setCurrentPatients] = useState<number>(12);
@@ -33,9 +32,6 @@ const App: React.FC = () => {
   const annualLoss = monthlyLoss * 12;
 
   // Time Calculations
-  // Grid spans 09:00 to 18:00 (minus 1 hour lunch) = 8 hours per day.
-  // 8 hours * 5 days = 40 total slots.
-  // This matches the Max Capacity of the slider.
   const visualGridTotalSlots = 40; 
   
   const hoursWorkedWeekly = (currentPatients * sessionDuration) / 60;
@@ -85,7 +81,7 @@ const App: React.FC = () => {
           
           {/* Input Section - Increased Padding */}
           <section className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100">
-            <RangeSlider
+            <InputRange
               label="Valor da Sessão"
               value={sessionPrice}
               min={50}
@@ -96,9 +92,7 @@ const App: React.FC = () => {
               colorClass="text-emerald-600"
             />
 
-            {/* Removed Session Duration Slider as requested, fixed to 60min */}
-
-            <RangeSlider
+            <InputRange
               label="Capacidade Semanal"
               value={weeklyCapacity}
               min={1}
@@ -107,7 +101,7 @@ const App: React.FC = () => {
               colorClass="text-slate-900"
             />
 
-            <RangeSlider
+            <InputRange
               label="Pacientes Atuais"
               value={currentPatients}
               min={0}

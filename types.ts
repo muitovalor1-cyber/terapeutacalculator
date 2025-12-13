@@ -4,13 +4,7 @@ export interface NumberTickerProps {
   className?: string;
 }
 
-export interface AnimatedNumberProps {
-  value: number;
-  format?: (val: number) => string;
-  className?: string;
-}
-
-export interface SliderProps {
+export interface InputRangeProps {
   label: string;
   value: number;
   min: number;
@@ -34,3 +28,6 @@ export interface WeeklyCalendarProps {
   weeklyCapacity: number;
   sessionPrice: number;
 }
+
+export type AnimatedNumberProps = NumberTickerProps;
+export type SliderProps = InputRangeProps;
