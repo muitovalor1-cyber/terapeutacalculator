@@ -4,7 +4,7 @@ export interface NumberTickerProps {
   className?: string;
 }
 
-export interface InputRangeProps {
+export interface SimpleRangeProps {
   label: string;
   value: number;
   min: number;
@@ -15,14 +15,6 @@ export interface InputRangeProps {
   colorClass?: string;
 }
 
-export interface ResultCardProps {
-  title: string;
-  value: number;
-  highlight?: boolean;
-  type: 'neutral' | 'success' | 'danger';
-  subtext?: string;
-}
-
 export interface WeeklyCalendarProps {
   currentPatients: number;
   weeklyCapacity: number;
@@ -30,4 +22,5 @@ export interface WeeklyCalendarProps {
 }
 
 export type AnimatedNumberProps = NumberTickerProps;
-export type SliderProps = InputRangeProps;
+export type SliderProps = SimpleRangeProps;
+export type InputRangeProps = SimpleRangeProps;

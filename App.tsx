@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { InputRange } from './components/InputRange';
+import { SimpleRange } from './components/SimpleRange';
 import { NumberTicker } from './components/NumberTicker';
 import { WeeklyCalendar } from './components/WeeklyCalendar';
 import { AlertTriangle } from 'lucide-react';
@@ -19,16 +19,12 @@ const App: React.FC = () => {
   }, [weeklyCapacity, currentPatients]);
 
   // Financial Calculations
-  // Weekly (Base)
   const currentWeeklyRevenue = sessionPrice * currentPatients;
   const potentialWeeklyRevenue = sessionPrice * weeklyCapacity;
   const weeklyLoss = potentialWeeklyRevenue - currentWeeklyRevenue;
 
-  // Monthly (x4 weeks assumption)
   const weeksPerMonth = 4;
   const monthlyLoss = weeklyLoss * weeksPerMonth;
-
-  // Annual
   const annualLoss = monthlyLoss * 12;
 
   // Time Calculations
@@ -36,10 +32,9 @@ const App: React.FC = () => {
   
   const hoursWorkedWeekly = (currentPatients * sessionDuration) / 60;
   const hoursLostWeekly = ((weeklyCapacity - currentPatients) * sessionDuration) / 60;
-  // "Free" hours now includes unused slots within the 40-slot grid
   const hoursFreeWeekly = ((visualGridTotalSlots - weeklyCapacity) * sessionDuration) / 60;
 
-  // Format currency helper
+  // Format Helpers
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -48,7 +43,6 @@ const App: React.FC = () => {
     }).format(val);
   };
 
-  // Format time helper (Hours and Minutes)
   const formatTime = (decimalHours: number) => {
     const totalMinutes = Math.round(decimalHours * 60);
     const h = Math.floor(totalMinutes / 60);
@@ -79,9 +73,9 @@ const App: React.FC = () => {
         {/* LEFT COLUMN: Inputs & Results */}
         <div className="space-y-6 w-full max-w-md mx-auto lg:max-w-none">
           
-          {/* Input Section - Increased Padding */}
+          {/* Input Section */}
           <section className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100">
-            <InputRange
+            <SimpleRange
               label="Valor da Sessão"
               value={sessionPrice}
               min={50}
@@ -92,7 +86,7 @@ const App: React.FC = () => {
               colorClass="text-emerald-600"
             />
 
-            <InputRange
+            <SimpleRange
               label="Capacidade Semanal"
               value={weeklyCapacity}
               min={1}
@@ -101,21 +95,20 @@ const App: React.FC = () => {
               colorClass="text-slate-900"
             />
 
-            <InputRange
+            <SimpleRange
               label="Pacientes Atuais"
               value={currentPatients}
               min={0}
-              max={weeklyCapacity} // Dynamic Max
+              max={weeklyCapacity} 
               onChange={setCurrentPatients}
               colorClass="text-slate-600"
             />
           </section>
 
-          {/* Results Section - Increased Spacing */}
+          {/* Results Section */}
           <section className="space-y-5">
             
             <div className="grid grid-cols-2 gap-4">
-              {/* Block 1: Reality (Now Weekly) */}
               <div className="bg-white border-l-4 border-slate-400 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
                 <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Faturamento Semanal</p>
                 <div className="text-xl sm:text-2xl font-bold text-slate-700 leading-tight">
@@ -123,7 +116,6 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* Block 2: Potential (Now Weekly) */}
               <div className="bg-emerald-50 border-l-4 border-emerald-500 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
                 <p className="text-[10px] sm:text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">Potencial Semanal</p>
                 <div className="text-xl sm:text-2xl font-extrabold text-emerald-700 leading-tight">
@@ -132,7 +124,6 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Block 3: THE PAIN (Highlight) - Added Weekly Loss */}
             <div className="relative overflow-hidden bg-rose-600 text-white p-6 rounded-2xl shadow-2xl shadow-rose-200 transform transition-all duration-300">
               <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
               
@@ -145,7 +136,6 @@ const App: React.FC = () => {
                 </div>
 
                 <div className="flex justify-between items-end">
-                  {/* Left: Monthly Loss (Main) */}
                   <div>
                      <div className="text-3xl sm:text-4xl font-black tracking-tight leading-none mb-1">
                         <NumberTicker value={monthlyLoss} format={formatCurrency} />
@@ -153,9 +143,7 @@ const App: React.FC = () => {
                      <div className="text-rose-200 text-sm font-medium">prejuízo mensal</div>
                   </div>
 
-                  {/* Right: Weekly & Annual Breakdown */}
                   <div className="flex flex-col gap-3 text-right">
-                    
                     <div className="flex flex-col items-end">
                       <span className="text-[10px] uppercase font-bold text-rose-200">Semanal</span>
                       <span className="text-lg font-bold leading-none">
@@ -169,15 +157,12 @@ const App: React.FC = () => {
                         <NumberTicker value={annualLoss} format={formatCurrency} />
                       </span>
                     </div>
-
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* NEW SECTION: Time Report */}
             <div className="grid grid-cols-3 gap-4 pt-2">
-              {/* Worked */}
               <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
                 <span className="text-xl sm:text-2xl font-bold text-slate-800 leading-none">
                   <NumberTicker value={hoursWorkedWeekly} format={formatTime} />
@@ -185,7 +170,6 @@ const App: React.FC = () => {
                 <span className="text-[10px] uppercase font-bold text-slate-400 mt-1">Trabalho</span>
               </div>
 
-              {/* Lost (Idle/Vaga) */}
               <div className="bg-rose-50 p-3 rounded-xl border border-rose-100 shadow-sm flex flex-col items-center justify-center text-center">
                 <span className="text-xl sm:text-2xl font-bold text-rose-700 leading-none">
                   <NumberTicker value={hoursLostWeekly} format={formatTime} />
@@ -193,7 +177,6 @@ const App: React.FC = () => {
                 <span className="text-[10px] uppercase font-bold text-rose-400 mt-1">Ocioso</span>
               </div>
 
-               {/* Free (Rest) */}
                <div className="bg-slate-100 p-3 rounded-xl border border-slate-200 shadow-inner flex flex-col items-center justify-center text-center opacity-80">
                 <span className="text-xl sm:text-2xl font-bold text-slate-600 leading-none">
                   <NumberTicker value={hoursFreeWeekly} format={formatTime} />
@@ -206,7 +189,6 @@ const App: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN: Visual Calendar */}
-        {/* Changed max-w-md to max-w-xl to allow more width on mobile/tablet */}
         <div className="w-full max-w-xl mx-auto lg:max-w-none lg:sticky lg:top-8 h-fit">
           <WeeklyCalendar 
             currentPatients={currentPatients}
