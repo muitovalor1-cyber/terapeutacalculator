@@ -387,11 +387,11 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8 font-sans">
       <header className="mb-10 text-center max-w-3xl w-full">
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+        <h1 className="text-xl min-[360px]:text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
           Calculadora <span className="text-emerald-700">Terapeuta 10x</span>
         </h1>
         <p className="mt-2 text-slate-500 text-sm font-medium">
-          Simule o impacto financeiro de otimizar sua agenda
+          Ajuste os controles abaixo para descobrir seu potencial de faturamento.
         </p>
       </header>
 
