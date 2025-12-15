@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Utensils, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Utensils, AlertTriangle, TrendingUp, Clock, Wallet, Info } from 'lucide-react';
 
 // --- TYPES DEFINITIONS ---
 interface RangeInputProps {
@@ -25,7 +25,7 @@ interface VisualCalendarProps {
   sessionPrice: number;
 }
 
-// --- COMPONENT: RangeInput (Antigo SimpleRange) ---
+// --- COMPONENT: RangeInput ---
 const RangeInput: React.FC<RangeInputProps> = ({ 
   label, 
   value, 
@@ -37,9 +37,9 @@ const RangeInput: React.FC<RangeInputProps> = ({
   colorClass = "text-slate-900" 
 }) => {
   return (
-    <div className="mb-7 w-full last:mb-0">
+    <div className="mb-6 w-full last:mb-0 group">
       <div className="flex justify-between items-end mb-3">
-        <label className="text-sm font-bold text-slate-500 uppercase tracking-wide">
+        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">
           {label}
         </label>
         <span className={`text-xl font-bold leading-none ${colorClass}`}>
@@ -53,9 +53,9 @@ const RangeInput: React.FC<RangeInputProps> = ({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-400"
+        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-300 transition-all hover:bg-slate-300"
       />
-      <div className="flex justify-between mt-2 text-xs text-slate-400 font-medium">
+      <div className="flex justify-between mt-2 text-[10px] text-slate-400 font-medium">
         <span>{unit}{min}</span>
         <span>{unit}{max}</span>
       </div>
@@ -63,13 +63,13 @@ const RangeInput: React.FC<RangeInputProps> = ({
   );
 };
 
-// --- COMPONENT: AnimatedCounter (Antigo NumberTicker) ---
+// --- COMPONENT: AnimatedCounter ---
 const AnimatedCounter: React.FC<AnimatedCounterProps> = ({ value, format, className }) => {
   const [displayValue, setDisplayValue] = useState(value);
 
   useEffect(() => {
     let startTimestamp: number | null = null;
-    const duration = 600; 
+    const duration = 800; 
     const startValue = displayValue;
     const endValue = value;
 
@@ -78,7 +78,7 @@ const AnimatedCounter: React.FC<AnimatedCounterProps> = ({ value, format, classN
     const step = (timestamp: number) => {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      const easeProgress = 1 - Math.pow(1 - progress, 4);
+      const easeProgress = 1 - Math.pow(1 - progress, 4); // easeOutQuart
       const current = startValue + (endValue - startValue) * easeProgress;
       
       setDisplayValue(current);
@@ -95,7 +95,7 @@ const AnimatedCounter: React.FC<AnimatedCounterProps> = ({ value, format, classN
   return <span className={className}>{formattedValue}</span>;
 };
 
-// --- COMPONENT: VisualCalendar (Antigo WeeklyCalendar) ---
+// --- COMPONENT: VisualCalendar ---
 const VisualCalendar: React.FC<VisualCalendarProps> = ({ currentPatients, weeklyCapacity, sessionPrice }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -214,7 +214,6 @@ const VisualCalendar: React.FC<VisualCalendarProps> = ({ currentPatients, weekly
                 Vago
               </span>
            </div>
-           <div className="h-7 w-7 sm:h-9 sm:w-9 bg-sky-600 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-md ring-2 ring-sky-100">T</div>
         </div>
       </div>
 
@@ -318,17 +317,29 @@ const App: React.FC = () => {
     }
   }, [weeklyCapacity, currentPatients]);
 
+  const weeksPerMonth = 4;
+  
+  // Weekly Calculations (for Logic)
   const currentWeeklyRevenue = sessionPrice * currentPatients;
   const potentialWeeklyRevenue = sessionPrice * weeklyCapacity;
   const weeklyLoss = potentialWeeklyRevenue - currentWeeklyRevenue;
-  const weeksPerMonth = 4;
+
+  // Monthly Calculations (for Display)
+  const currentMonthlyRevenue = currentWeeklyRevenue * weeksPerMonth;
+  const potentialMonthlyRevenue = potentialWeeklyRevenue * weeksPerMonth;
   const monthlyLoss = weeklyLoss * weeksPerMonth;
   const annualLoss = monthlyLoss * 12;
+
+  const occupancyRate = weeklyCapacity > 0 ? (currentPatients / weeklyCapacity) * 100 : 0;
+  const revenueIncreasePotential = currentMonthlyRevenue > 0 
+    ? ((potentialMonthlyRevenue - currentMonthlyRevenue) / currentMonthlyRevenue) * 100 
+    : 100;
 
   const visualGridTotalSlots = 40; 
   const hoursWorkedWeekly = (currentPatients * sessionDuration) / 60;
   const hoursLostWeekly = ((weeklyCapacity - currentPatients) * sessionDuration) / 60;
   const hoursFreeWeekly = ((visualGridTotalSlots - weeklyCapacity) * sessionDuration) / 60;
+  const totalHours = hoursWorkedWeekly + hoursLostWeekly + hoursFreeWeekly;
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -342,101 +353,197 @@ const App: React.FC = () => {
     const totalMinutes = Math.round(decimalHours * 60);
     const h = Math.floor(totalMinutes / 60);
     const m = totalMinutes % 60;
-    
     if (totalMinutes === 0) return "0h";
     if (h === 0) return `${m}m`;
-    if (m === 0) return `${h}h`;
-    return `${h}h ${m}m`;
+    return `${h}h${m > 0 ? ` ${m}m` : ''}`;
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8">
-      <header className="mb-8 text-center max-w-3xl w-full">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8 font-sans">
+      <header className="mb-10 text-center max-w-3xl w-full">
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
           Calculadora <span className="text-emerald-700">Terapeuta 10x</span>
         </h1>
         <p className="mt-2 text-slate-500 text-sm font-medium">
-          Descubra quanto dinheiro você está deixando na mesa
+          Simule o impacto financeiro de otimizar sua agenda
         </p>
       </header>
 
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
-        <div className="space-y-6 w-full max-w-md mx-auto lg:max-w-none">
-          <section className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100">
-            <RangeInput label="Valor da Sessão" value={sessionPrice} min={50} max={500} step={10} unit="R$ " onChange={setSessionPrice} colorClass="text-emerald-600" />
-            <RangeInput label="Capacidade Semanal" value={weeklyCapacity} min={1} max={40} onChange={setWeeklyCapacity} colorClass="text-slate-900" />
+        
+        {/* LEFT COLUMN: Controls & Dashboard */}
+        <div className="space-y-8 w-full max-w-md mx-auto lg:max-w-none">
+          
+          {/* Controls */}
+          <section className="bg-white p-6 sm:p-8 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -mr-16 -mt-16 pointer-events-none"></div>
+            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+              <span className="w-1 h-6 bg-emerald-500 rounded-full"></span>
+              Parâmetros da Clínica
+            </h3>
+            
+            <RangeInput label="Valor da Sessão" value={sessionPrice} min={50} max={600} step={10} unit="R$ " onChange={setSessionPrice} colorClass="text-emerald-600" />
+            <RangeInput label="Capacidade Semanal (Vagas)" value={weeklyCapacity} min={1} max={40} onChange={setWeeklyCapacity} colorClass="text-slate-900" />
             <RangeInput label="Pacientes Atuais" value={currentPatients} min={0} max={weeklyCapacity} onChange={setCurrentPatients} colorClass="text-slate-600" />
+            
+            <div className="mt-6 pt-6 border-t border-slate-100 flex justify-between items-center text-xs text-slate-400">
+               <span>Ocupação atual: <strong className={occupancyRate < 50 ? 'text-rose-500' : 'text-emerald-600'}>{Math.round(occupancyRate)}%</strong></span>
+               <span>Meta: 100%</span>
+            </div>
           </section>
 
-          <section className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white border-l-4 border-slate-400 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Faturamento Semanal</p>
-                <div className="text-xl sm:text-2xl font-bold text-slate-700 leading-tight">
-                  <AnimatedCounter value={currentWeeklyRevenue} format={formatCurrency} />
+          {/* Results Dashboard */}
+          <section className="space-y-6">
+            
+            {/* 1. Revenue Health Card (MONTHLY FOCUSED) */}
+            <div className="bg-white p-6 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.05)] border border-slate-100">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                  <Wallet size={14} /> Saúde Financeira (Mensal)
+                </h3>
+                {revenueIncreasePotential > 0 && (
+                   <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                     <TrendingUp size={10} /> Potencial de +{Math.round(revenueIncreasePotential)}%
+                   </span>
+                )}
+              </div>
+
+              <div className="flex justify-between items-end mb-2">
+                <div>
+                   <span className="text-xs text-slate-400 font-medium block mb-0.5">Faturamento Mensal</span>
+                   <span className="text-2xl font-bold text-slate-700 block leading-none">
+                      <AnimatedCounter value={currentMonthlyRevenue} format={formatCurrency} />
+                   </span>
+                </div>
+                <div className="text-right">
+                   <span className="text-xs text-emerald-600 font-bold block mb-0.5">Potencial Mensal</span>
+                   <span className="text-lg font-bold text-emerald-600 block leading-none">
+                      <AnimatedCounter value={potentialMonthlyRevenue} format={formatCurrency} />
+                   </span>
                 </div>
               </div>
 
-              <div className="bg-emerald-50 border-l-4 border-emerald-500 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                <p className="text-[10px] sm:text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">Potencial Semanal</p>
-                <div className="text-xl sm:text-2xl font-extrabold text-emerald-700 leading-tight">
-                  <AnimatedCounter value={potentialWeeklyRevenue} format={formatCurrency} />
+              {/* Progress Bar */}
+              <div className="relative h-3 w-full bg-slate-100 rounded-full overflow-hidden mb-2">
+                <div 
+                  className="absolute top-0 left-0 h-full bg-slate-800 rounded-full transition-all duration-700 ease-out"
+                  style={{ width: `${occupancyRate}%` }}
+                ></div>
+                {occupancyRate < 100 && (
+                  <div 
+                    className="absolute top-0 left-0 h-full bg-emerald-400 opacity-30 animate-pulse transition-all duration-700 ease-out"
+                    style={{ width: '100%', left: `${occupancyRate}%` }}
+                  ></div>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-400 text-center w-full">
+                Considerando 4 semanas comerciais
+              </p>
+            </div>
+
+            {/* 2. Impact / Loss Card (Red) - CLEANED UP */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-rose-600 to-rose-700 text-white p-6 rounded-2xl shadow-[0_10px_40px_-10px_rgba(225,29,72,0.5)] transform hover:scale-[1.01] transition-all duration-300">
+               {/* Background decorations */}
+              <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 -ml-10 -mb-10 w-40 h-40 bg-black opacity-10 rounded-full blur-3xl"></div>
+              
+              <div className="relative z-10 text-center sm:text-left">
+                <div className="flex items-center justify-center sm:justify-start gap-2 mb-6">
+                  <div className="bg-white/20 p-1.5 rounded-lg">
+                    <AlertTriangle className="w-4 h-4 text-white" />
+                  </div>
+                  <h2 className="text-sm font-bold tracking-widest text-rose-100 uppercase">
+                    Dinheiro na Mesa
+                  </h2>
+                </div>
+
+                <div className="flex flex-col gap-1 mb-8">
+                   <span className="text-rose-200 text-sm font-medium">Você está perdendo por ano:</span>
+                   <div className="text-4xl sm:text-5xl font-black tracking-tight leading-none text-white drop-shadow-sm">
+                      <AnimatedCounter value={annualLoss} format={formatCurrency} />
+                   </div>
+                </div>
+
+                {/* Simplified Monthly View */}
+                <div className="bg-rose-800/30 rounded-xl p-3 flex justify-between items-center border border-rose-500/30">
+                   <span className="text-xs font-bold text-rose-100 uppercase tracking-wide opacity-90 pl-1">
+                     Isso é um prejuízo mensal de:
+                   </span>
+                   <div className="text-xl font-bold leading-none bg-rose-900/40 px-3 py-1.5 rounded-lg border border-rose-500/20">
+                     <AnimatedCounter value={monthlyLoss} format={formatCurrency} />
+                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="relative overflow-hidden bg-rose-600 text-white p-6 rounded-2xl shadow-2xl shadow-rose-200 transform transition-all duration-300">
-              <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-4">
-                  <AlertTriangle className="w-5 h-5 text-rose-200 animate-pulse" />
-                  <h2 className="text-sm font-bold tracking-[0.2em] text-rose-100 uppercase">Dinheiro na Mesa</h2>
-                </div>
-                <div className="flex justify-between items-end">
-                  <div>
-                     <div className="text-3xl sm:text-4xl font-black tracking-tight leading-none mb-1">
-                        <AnimatedCounter value={monthlyLoss} format={formatCurrency} />
+            {/* 3. Time Composition Stats */}
+            <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
+               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2 mb-4">
+                  <Clock size={14} /> Distribuição de Tempo (Semanal)
+               </h3>
+               
+               {/* Visual Bar */}
+               <div className="flex h-4 w-full rounded-full overflow-hidden mb-4">
+                  <div className="bg-slate-800 transition-all duration-500" style={{ width: `${(hoursWorkedWeekly/totalHours)*100}%` }}></div>
+                  <div className="bg-rose-500 transition-all duration-500" style={{ width: `${(hoursLostWeekly/totalHours)*100}%` }}></div>
+                  <div className="bg-slate-200 transition-all duration-500" style={{ width: `${(hoursFreeWeekly/totalHours)*100}%` }}></div>
+               </div>
+
+               <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="flex flex-col items-center">
+                     <span className="text-lg font-bold text-slate-800 leading-none">
+                        <AnimatedCounter value={hoursWorkedWeekly} format={formatTime} />
+                     </span>
+                     <div className="flex items-center gap-1 mt-1">
+                        <div className="w-2 h-2 rounded-full bg-slate-800"></div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Produtivo</span>
                      </div>
-                     <div className="text-rose-200 text-sm font-medium">prejuízo mensal</div>
                   </div>
-                  <div className="flex flex-col gap-3 text-right">
-                    <div className="flex flex-col items-end">
-                      <span className="text-[10px] uppercase font-bold text-rose-200">Semanal</span>
-                      <span className="text-lg font-bold leading-none"><AnimatedCounter value={weeklyLoss} format={formatCurrency} /></span>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className="text-[10px] uppercase font-bold text-rose-200">Anual</span>
-                      <span className="text-lg font-bold leading-none bg-rose-800/40 px-2 py-0.5 rounded shadow-inner"><AnimatedCounter value={annualLoss} format={formatCurrency} /></span>
-                    </div>
+                  
+                  <div className="flex flex-col items-center">
+                     <span className="text-lg font-bold text-rose-600 leading-none">
+                        <AnimatedCounter value={hoursLostWeekly} format={formatTime} />
+                     </span>
+                     <div className="flex items-center gap-1 mt-1">
+                         <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>
+                         <span className="text-[10px] font-bold text-rose-500 uppercase">Ocioso</span>
+                     </div>
                   </div>
-                </div>
-              </div>
+
+                  <div className="flex flex-col items-center opacity-60">
+                     <span className="text-lg font-bold text-slate-500 leading-none">
+                        <AnimatedCounter value={hoursFreeWeekly} format={formatTime} />
+                     </span>
+                     <div className="flex items-center gap-1 mt-1">
+                        <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Livre</span>
+                     </div>
+                  </div>
+               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 pt-2">
-              <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
-                <span className="text-xl sm:text-2xl font-bold text-slate-800 leading-none"><AnimatedCounter value={hoursWorkedWeekly} format={formatTime} /></span>
-                <span className="text-[10px] uppercase font-bold text-slate-400 mt-1">Trabalho</span>
-              </div>
-              <div className="bg-rose-50 p-3 rounded-xl border border-rose-100 shadow-sm flex flex-col items-center justify-center text-center">
-                <span className="text-xl sm:text-2xl font-bold text-rose-700 leading-none"><AnimatedCounter value={hoursLostWeekly} format={formatTime} /></span>
-                <span className="text-[10px] uppercase font-bold text-rose-400 mt-1">Ocioso</span>
-              </div>
-               <div className="bg-slate-100 p-3 rounded-xl border border-slate-200 shadow-inner flex flex-col items-center justify-center text-center opacity-80">
-                <span className="text-xl sm:text-2xl font-bold text-slate-600 leading-none"><AnimatedCounter value={hoursFreeWeekly} format={formatTime} /></span>
-                <span className="text-[10px] uppercase font-bold text-slate-400 mt-1">Livre</span>
-              </div>
-            </div>
           </section>
         </div>
 
+        {/* RIGHT COLUMN: Visual Calendar */}
         <div className="w-full max-w-xl mx-auto lg:max-w-none lg:sticky lg:top-8 h-fit">
           <VisualCalendar currentPatients={currentPatients} weeklyCapacity={weeklyCapacity} sessionPrice={sessionPrice} />
+          
+          <div className="mt-4 bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 items-start text-blue-800 text-sm">
+            <Info className="w-5 h-5 flex-shrink-0 mt-0.5 text-blue-600" />
+            <p className="leading-relaxed opacity-90">
+              <strong>Dica:</strong> Cada bloco vazio no calendário representa <span className="font-bold text-rose-600">R$ {sessionPrice}</span> que deixa de entrar no seu caixa.
+              Visualizar os "buracos" na agenda ajuda a entender o impacto acumulado.
+            </p>
+          </div>
         </div>
       </div>
 
-      <footer className="mt-12 text-center pb-8">
-        <p className="text-xs text-slate-400">*Cálculo estimativo baseado em 4 semanas/mês.</p>
+      <footer className="mt-16 text-center border-t border-slate-200 w-full max-w-2xl pt-8">
+        <p className="text-xs text-slate-400">
+          Calculadora desenvolvida para terapeutas visualizarem o custo de oportunidade.
+          <br/>Considera mês comercial de 4 semanas.
+        </p>
       </footer>
     </div>
   );
