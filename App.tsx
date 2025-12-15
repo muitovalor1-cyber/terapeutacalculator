@@ -168,19 +168,40 @@ const VisualCalendar: React.FC<VisualCalendarProps> = ({ currentPatients, weekly
       });
     });
 
-    let seed = 123456; 
+    // Deterministic Random
+    let seed = 42; 
     const seededRandom = () => {
         const x = Math.sin(seed++) * 10000;
         return x - Math.floor(x);
     };
 
-    const shuffled = [...validSlots];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(seededRandom() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
+    // Ponderação de horários (Pesos)
+    // Maior peso = maior prioridade de preenchimento
+    const hourWeights: {[key: number]: number} = {
+        9: 0.9,  // Pico Manhã
+        10: 0.85,
+        11: 0.7,
+        13: 0.4, // Baixa pós-almoço
+        14: 0.5,
+        15: 0.65,
+        16: 0.85, // Pico Tarde
+        17: 0.9
+    };
 
-    shuffled.forEach((slot, index) => {
+    const scoredSlots = validSlots.map(slot => {
+        const baseWeight = hourWeights[slot.hour] || 0.5;
+        // Adiciona um ruído controlado para variação visual, mas mantendo a lógica do peso
+        const noise = seededRandom() * 0.4; 
+        return { 
+            ...slot, 
+            score: baseWeight + noise 
+        };
+    });
+
+    // Ordena por score (Maior score = Primeiro a ser preenchido/Ocupado)
+    scoredSlots.sort((a, b) => b.score - a.score);
+
+    scoredSlots.forEach((slot, index) => {
       let status: 'occupied' | 'loss' | 'free' = 'free';
       if (index < currentPatients) status = 'occupied';
       else if (index < weeklyCapacity) status = 'loss';
@@ -214,6 +235,7 @@ const VisualCalendar: React.FC<VisualCalendarProps> = ({ currentPatients, weekly
                 Vago
               </span>
            </div>
+           <div className="h-7 w-7 sm:h-9 sm:w-9 bg-sky-600 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-md ring-2 ring-sky-100">T</div>
         </div>
       </div>
 
@@ -252,10 +274,13 @@ const VisualCalendar: React.FC<VisualCalendarProps> = ({ currentPatients, weekly
 
           {hoursArray.map((hour, hIndex) => {
             const isLunch = hour === 12;
+            const isFirst = hIndex === 0;
             return (
               <div key={hour} className="flex h-14 sm:h-20 border-b border-slate-100 relative group">
                 <div className="w-10 sm:w-12 flex-shrink-0 border-r border-slate-100 text-[10px] sm:text-xs text-slate-500 font-medium text-right pr-1.5 sm:pr-2 relative">
-                  <span className="absolute -top-2.5 right-1 sm:right-2 bg-white pl-1">{hour.toString().padStart(2, '0')}:00</span>
+                  <span className={`absolute right-1 sm:right-2 bg-white pl-1 ${isFirst ? 'top-1' : '-top-2.5'}`}>
+                    {hour.toString().padStart(2, '0')}:00
+                  </span>
                 </div>
                 {days.map((_, dIndex) => {
                   if (isLunch) {
@@ -286,10 +311,11 @@ const VisualCalendar: React.FC<VisualCalendarProps> = ({ currentPatients, weekly
                           <div className={`font-bold truncate mb-0.5 ${status === 'loss' ? 'text-[8px] sm:text-[10px]' : ''}`}>
                             {status === 'occupied' ? 'Sessão' : 'VAGO'}
                           </div>
-                          <div className={`truncate ${status === 'loss' ? 'font-black text-rose-600 text-[10px] sm:text-sm' : 'opacity-80 font-medium hidden sm:block'}`}>
+                          
+                          {/* UNIFIED PRICE DISPLAY: Solves Mobile Duplication */}
+                          <div className={`truncate ${status === 'loss' ? 'font-black text-rose-600 text-[9px] sm:text-sm' : 'opacity-80 font-medium hidden sm:block'}`}>
                             {status === 'occupied' ? 'Confirmado' : `- R$ ${sessionPrice}`}
                           </div>
-                          <div className={`truncate font-bold text-rose-600 text-[9px] block sm:hidden ${status === 'loss' ? 'block' : 'hidden'}`}>- R$ {sessionPrice}</div>
                         </div>
                       )}
                     </div>
@@ -396,47 +422,53 @@ const App: React.FC = () => {
           <section className="space-y-6">
             
             {/* 1. Revenue Health Card (MONTHLY FOCUSED) */}
-            <div className="bg-white p-6 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.05)] border border-slate-100">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <Wallet size={14} /> Saúde Financeira (Mensal)
-                </h3>
-                {revenueIncreasePotential > 0 && (
-                   <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                     <TrendingUp size={10} /> Potencial de +{Math.round(revenueIncreasePotential)}%
-                   </span>
-                )}
-              </div>
-
-              <div className="flex justify-between items-end mb-2">
-                <div>
-                   <span className="text-xs text-slate-400 font-medium block mb-0.5">Faturamento Mensal</span>
-                   <span className="text-2xl font-bold text-slate-700 block leading-none">
-                      <AnimatedCounter value={currentMonthlyRevenue} format={formatCurrency} />
-                   </span>
+            <div>
+              <div className="bg-white p-6 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.05)] border border-slate-100">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                    <Wallet size={14} /> Saúde Financeira (Mensal)
+                  </h3>
                 </div>
-                <div className="text-right">
-                   <span className="text-xs text-emerald-600 font-bold block mb-0.5">Potencial Mensal</span>
-                   <span className="text-lg font-bold text-emerald-600 block leading-none">
-                      <AnimatedCounter value={potentialMonthlyRevenue} format={formatCurrency} />
-                   </span>
-                </div>
-              </div>
 
-              {/* Progress Bar */}
-              <div className="relative h-3 w-full bg-slate-100 rounded-full overflow-hidden mb-2">
-                <div 
-                  className="absolute top-0 left-0 h-full bg-slate-800 rounded-full transition-all duration-700 ease-out"
-                  style={{ width: `${occupancyRate}%` }}
-                ></div>
-                {occupancyRate < 100 && (
+                <div className="flex justify-between items-end mb-2">
+                  <div>
+                    <span className="text-xs text-slate-400 font-medium block mb-0.5">Faturamento Mensal</span>
+                    <span className="text-2xl font-bold text-slate-700 block leading-none">
+                        <AnimatedCounter value={currentMonthlyRevenue} format={formatCurrency} />
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs text-emerald-600 font-bold block mb-0.5">Potencial Mensal</span>
+                    <span className="text-lg font-bold text-emerald-600 block leading-none">
+                        <AnimatedCounter value={potentialMonthlyRevenue} format={formatCurrency} />
+                    </span>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="relative h-3 w-full bg-slate-100 rounded-full overflow-hidden mb-2">
                   <div 
-                    className="absolute top-0 left-0 h-full bg-emerald-400 opacity-30 animate-pulse transition-all duration-700 ease-out"
-                    style={{ width: '100%', left: `${occupancyRate}%` }}
+                    className="absolute top-0 left-0 h-full bg-slate-800 rounded-full transition-all duration-700 ease-out"
+                    style={{ width: `${occupancyRate}%` }}
                   ></div>
+                  {occupancyRate < 100 && (
+                    <div 
+                      className="absolute top-0 left-0 h-full bg-emerald-400 opacity-30 animate-pulse transition-all duration-700 ease-out"
+                      style={{ width: '100%', left: `${occupancyRate}%` }}
+                    ></div>
+                  )}
+                </div>
+                
+                {revenueIncreasePotential > 0 && (
+                  <div className="flex justify-end mt-2">
+                    <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 border border-emerald-100/50">
+                      <TrendingUp size={12} className="text-emerald-600" /> 
+                      <span>Potencial de +{Math.round(revenueIncreasePotential)}%</span>
+                    </span>
+                  </div>
                 )}
               </div>
-              <p className="text-[10px] text-slate-400 text-center w-full">
+              <p className="text-[10px] text-slate-400 text-center mt-2 px-4">
                 Considerando 4 semanas comerciais
               </p>
             </div>
